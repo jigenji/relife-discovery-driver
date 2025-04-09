@@ -1,4 +1,8 @@
+export interface PropertyCondition {
+  request: string;
+}
+
 // Add Activity Definitions here.
-export async function YOUR_ACTIVITY(name: string): Promise<string> {
-  return `Hello, ${name}!`;
+export async function startSearchActivity(condition: PropertyCondition): Promise<string> {
+  return `Start search with condition = ${condition.request}!`;
 }

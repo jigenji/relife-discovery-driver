@@ -9,8 +9,13 @@
     "format:check": "prettier --check .",
     "lint": "eslint .",
     "start": "ts-node src/worker.ts",
+    "server": "ts-node src/api/server.ts",
     "start.watch": "nodemon src/worker.ts",
-    "workflow": "ts-node src/client.ts",
+    "workflow-start": "ts-node src/clients/start.ts",
+    "workflow-request-research": "ts-node src/clients/requrst-research.ts",
+    "workflow-submit-research-progress": "ts-node src/clients/submit-research-progress.ts",
+    "workflow-submit-research-result": "ts-node src/clients/submit-research-result.ts",
+    "workflow-convinced": "ts-node src/clients/convinced.ts",
     "test": "mocha --exit --require ts-node/register --require source-map-support/register src/mocha/*.test.ts"
   },
   "nodemonConfig": {
@@ -27,11 +32,13 @@
     "@temporalio/client": "^1.11.6",
     "@temporalio/worker": "^1.11.6",
     "@temporalio/workflow": "^1.11.6",
+    "express": "^5.1.0",
     "nanoid": "3.x"
   },
   "devDependencies": {
     "@temporalio/testing": "^1.11.6",
     "@tsconfig/node18": "^18.2.4",
+    "@types/express": "^5.0.1",
     "@types/mocha": "8.x",
     "@types/node": "^22.9.1",
     "@typescript-eslint/eslint-plugin": "^8.18.0",
