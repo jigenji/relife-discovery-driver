@@ -67,13 +67,13 @@ export async function relifeResearchWorkflow(): Promise<void> {
 
     // onStarted: Activity戻り値(AResult)を活用する箇所
     (jobId) => {
-      console.log('Search job started. jobId:', jobId);
+      console.log('[DEBUG] Search job started. jobId:', jobId);
       // 必要なら DB記録したり他のActivityを呼んだり...
     }, 
 
     // onProgress: 途中経過が来るたびに呼ぶ
     (prog) => {
-      console.log('Partial search result:', prog.message);
+      console.log('[DEBUG] Partial search result:', prog.message);
     },
 
   );
@@ -95,18 +95,21 @@ export async function relifeResearchWorkflow(): Promise<void> {
     // 調査条件を受け取った時に実行する処理
     async (cond) => {
       // 新しい検索条件を受け取ったら
-      console.log('New condition submitted:', cond);
+      console.log('[DEBUG] New condition submitted:', cond);
 
       // (6) の検索を実行。完了シグナルで受け取る最終結果を得る
       const finalRes = await progressReq(cond);
 
-      console.log('Final search result from agent:', finalRes);
+      console.log('[DEBUG] Final search result from agent:', finalRes);
       // ここでユーザーへ結果を提示など...
     }
   );
 
   // (3) のループ実行 → ユーザーがfinishSignal送るまで継続
+  console.log('[DEBUG] relifeResearchWorkflow start');
+  console.log('[DEBUG] relifeResearchWorkflow: waiting for conditionSignal...');
+
   await iterativeReq();
 
-  console.log('factoryPatternWorkflow: finishSignal received, done.');
+  console.log('[DEBUG] relifeResearchWorkflow: finishSignal received, done.');
 }
