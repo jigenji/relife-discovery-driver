@@ -24,13 +24,35 @@ export const searchCompleteSignal = defineSignal<[SearchResult]>('searchComplete
 
 // 仮のActivity (実際には外部検索を開始する)
 import { proxyActivities } from '@temporalio/workflow';
-import type * as acts from './activities';
 import { createIterativeLoopRequest, createProgressReportingRequest } from './helpers/requestHelpers';
-import { PropertyCondition } from './activities';
+import { PropertyCondition } from './activities/types';
+import { TASK_QUEUE_NAME } from './shared';
 
-const { startSearchActivity } = proxyActivities<typeof acts>({
+// python側のworkerで実行されるActivityの型定義
+interface PythonActivities {
+  // Activity の型定義
+  startSearchActivity(condition: PropertyCondition): Promise<string>;
+}
+
+
+const { startSearchActivity } = proxyActivities<PythonActivities>({
+  taskQueue: "PYTHON_TASKQUEUE",
   startToCloseTimeout: '10 minutes',
 });
+
+interface TypescriptActivities {
+  // Activity の型定義
+  postChatMessage(
+    chatSessionId: string,
+    message: string
+  ): Promise<string>
+}
+
+const {postChatMessage} = proxyActivities<TypescriptActivities>({
+  taskQueue: TASK_QUEUE_NAME,
+  startToCloseTimeout: '10 minute',
+});
+
 
 
 /**
@@ -39,7 +61,10 @@ const { startSearchActivity } = proxyActivities<typeof acts>({
  * - 調査Agentの検索は (6) 途中経過(Progress)を都度連絡し、完了時にFinalを返す拡張版
  * - Activityの戻り値(AResult) も onStartedコールバックで扱える
  */
-export async function relifeResearchWorkflow(): Promise<void> {
+export async function relifeResearchWorkflow(chatSessionId: string): Promise<void> {
+  console.log('[DEBUG] relifeResearchWorkflow start with chatSessionId:', chatSessionId);
+  await postChatMessage(chatSessionId, "[😎マネージャーのコメント] 調査員が賃貸を探せるように待機しています 🙋‍♂️")
+
   /**
    * (6) 途中経過 + 完了時にFinalを受け取り、さらに「Activityの戻り値(AResult)をonStartedで使う」版。
    *
@@ -66,14 +91,17 @@ export async function relifeResearchWorkflow(): Promise<void> {
 
 
     // onStarted: Activity戻り値(AResult)を活用する箇所
-    (jobId) => {
+    async (jobId) => {
+      await postChatMessage(chatSessionId, "[👩‍💼 マネージャーのコメント] 調査員が賃貸を探しています 👍")
       console.log('[DEBUG] Search job started. jobId:', jobId);
+
       // 必要なら DB記録したり他のActivityを呼んだり...
     }, 
 
     // onProgress: 途中経過が来るたびに呼ぶ
-    (prog) => {
+    async (prog) => {
       console.log('[DEBUG] Partial search result:', prog.message);
+      await postChatMessage(chatSessionId, `[🧑‍💻 調査員のコメント] ${prog.message}`)
     },
 
   );
@@ -95,10 +123,12 @@ export async function relifeResearchWorkflow(): Promise<void> {
     // 調査条件を受け取った時に実行する処理
     async (cond) => {
       // 新しい検索条件を受け取ったら
-      console.log('[DEBUG] New condition submitted:', cond);
+      console.log('[DEBUG] New condition submitted:', {request: cond.request});
 
       // (6) の検索を実行。完了シグナルで受け取る最終結果を得る
-      const finalRes = await progressReq(cond);
+      const finalRes = await progressReq({request: cond.request});
+      await postChatMessage(chatSessionId, "[🧑‍💻 調査員のコメント] 一旦調査が完了しました、調査結果を確認してください😆")
+      await postChatMessage(chatSessionId, "[👩‍💼 マネージャーのコメント] 調査結果: " + finalRes.summary)
 
       console.log('[DEBUG] Final search result from agent:', finalRes);
       // ここでユーザーへ結果を提示など...
@@ -110,6 +140,7 @@ export async function relifeResearchWorkflow(): Promise<void> {
   console.log('[DEBUG] relifeResearchWorkflow: waiting for conditionSignal...');
 
   await iterativeReq();
+  await postChatMessage(chatSessionId, "[👩‍💼 マネージャーのコメント] そちらの物件をみてみたいのですね、手配しますね！")
 
   console.log('[DEBUG] relifeResearchWorkflow: finishSignal received, done.');
 }

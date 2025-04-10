@@ -5,6 +5,21 @@ import { relifeResearchWorkflow } from '../workflows';
 import { TASK_QUEUE_NAME } from '../shared';
 
 async function main() {
+const args = process.argv.slice(2);
+if (args.length < 1) {
+    console.error(`
+    ERROR: Insufficient arguments.
+
+    Usage:
+        yarn workflow-start <CHAT_SESSION_ID>
+
+    <CHAT_SESSION_ID> is the ID of the chat session.
+`);
+    process.exit(1);
+}
+
+const [chatSessionId] = args;
+
   console.log('[DEBUG] Connecting to Temporal server...');
   const connection = await Connection.connect();
   const client = new Client({ connection });
@@ -18,6 +33,7 @@ async function main() {
 await client.workflow.start(relifeResearchWorkflow, {
     taskQueue: TASK_QUEUE_NAME,
     workflowId,
+    args: [chatSessionId],
   });
 
   console.log('[DEBUG] Workflow started with ID:', workflowId);

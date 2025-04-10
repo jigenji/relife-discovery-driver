@@ -17,7 +17,7 @@ import {
   SearchResult,
 } from '../workflows';
 
-import { PropertyCondition } from '../activities';
+import { PropertyCondition } from '../activities/types';
 import { TASK_QUEUE_NAME } from '../shared';
 
 const app = express();
@@ -35,21 +35,30 @@ async function initTemporal() {
 // 1) ワークフロー開始
 app.post('/workflow/start', async (req: Request, res: Response) => {
   try {
+    // リクエストボディを想定 { workflowId: string, condition: { request: string } }
+    const { chatSessionId } = req.body;
+
+    if (!chatSessionId) {
+        res.status(400).json({ error: 'Missing chatSessionId' });
+        return;
+    }
+
     // workflowIdをユニークにする（例：タイムスタンプ利用）
     const workflowId = `relifeResearchWorkflow-${Date.now()}`;
 
     // TaskQueueはワークフローが待ち受けているキュー名
     // あるいは "some-queue" など自分で定義
     const taskQueue = TASK_QUEUE_NAME;
+    
 
     // ワークフロー開始
     await client.workflow.start(relifeResearchWorkflow, {
       workflowId,
       taskQueue,
-      // 引数が必要ならargs: [...]
+      args: [chatSessionId],
     });
 
-    res.json({ message: 'Workflow started', workflowId });
+    res.json({ workflowId });
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: String(err) });
